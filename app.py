@@ -16,24 +16,34 @@ st.markdown("""
         h1 { font-size: 1.3rem !important; margin-bottom: 0.1rem !important; }
         h3 { font-size: 1.0rem !important; margin-top: 0.3rem !important; margin-bottom: 0.3rem !important; }
         
-        /* 모바일 화면에서 컬럼이 세로로 떨어지지 않게 가로 줄바꿈 금지 강제 적용 */
+        /* 모바일 화면에서도 3개 버튼을 무조건 1행에 배치하는 강제 CSS */
+        div[data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            gap: 0.3rem !important;
+        }
+        
         div[data-testid="column"] {
-            width: calc(33.3333% - 0.5rem) !important;
-            flex: 1 1 calc(33.3333% - 0.5rem) !important;
+            flex: 1 1 auto !important;
             min-width: 0px !important;
+            width: auto !important;
         }
         
         /* 버튼 높이, 글자 크기, 여백 최적화 */
         div[data-testid="stButton"] > button {
-            padding: 0.2rem 0.2rem !important;
-            font-size: 0.8rem !important;
+            padding: 0.2rem 0.1rem !important;
+            font-size: 0.75rem !important;
             min-height: 2.2rem !important;
             white-space: nowrap !important;
+            width: 100% !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🇪🇸 나만의 스페인어 Daily Dictation")
+
+JSON_FILENAME = "dele_spanish.json"
 
 # --- [1] 기본 데이터 및 JSON 자동 로드 ---
 DEFAULT_TOPICS = {
@@ -59,6 +69,21 @@ def load_json_files_from_repo():
                 except Exception:
                     pass
     return repo_topics
+
+def save_to_dele_json(title, story):
+    """ dele_spanish.json 파일에 새 데이터 누적 저장 """
+    data = {}
+    if os.path.exists(JSON_FILENAME):
+        try:
+            with open(JSON_FILENAME, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            data = {}
+    
+    data[title] = story
+    
+    with open(JSON_FILENAME, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 # 세션 상태 관리
 if 'topics' not in st.session_state:
@@ -98,7 +123,65 @@ if selected_nav != st.session_state.selected_topic:
 
 st.sidebar.divider()
 st.sidebar.header("➕ 새 콘텐츠 추가하기")
-tab1, tab2 = st.sidebar.tabs(["✍️ 직접 붙여넣기", "📁 JSON 파일 업로드"])
+tab_ai, tab1, tab2 = st.sidebar.tabs(["🤖 AI 텍스트 복붙", "✍️ 직접 작성", "📁 JSON 업로드"])
+
+# --- [신규 기능 1] AI 텍스트 복붙 기능 ---
+with tab_ai:
+    st.caption("ChatGPT나 Claude가 출력한 문장을 붙여넣으면 `dele_spanish.json`에 바로 저장됩니다.")
+    
+    with st.expander("💡 AI 프롬프트 예시 보기"):
+        st.code("""스페인어 B2 수준 문장 3개를 만들어줘.
+형식:
+[스페인어 문장]
+[한국어 번역]""", language="text")
+
+    with st.form("add_ai_text_form"):
+        ai_title = st.text_input("주제/레슨 제목", placeholder="예: [B2] 환경 문제와 미래")
+        ai_raw_text = st.text_area(
+            "AI 생성 텍스트 붙여넣기", 
+            height=150, 
+            placeholder="1. 스페인어 문장\n한국어 번역\n\n2. 스페인어 문장\n한국어 번역\n\n또는\n스페인어 문장 | 한국어 번역"
+        )
+        ai_submit_btn = st.form_submit_button("`dele_spanish.json`에 저장하기")
+
+        if ai_submit_btn:
+            if not ai_title or not ai_raw_text:
+                st.error("제목과 텍스트 내용을 모두 입력해 주세요.")
+            else:
+                lines = [line.strip() for line in ai_raw_text.strip().split('\n') if line.strip()]
+                parsed_story = []
+
+                # 구문 분석 1: '스페인어 | 한국어' 형식인 경우
+                for line in lines:
+                    if '|' in line:
+                        parts = line.split('|')
+                        es_p = re.sub(r'^\d+[\.\)]\s*', '', parts[0].strip())
+                        ko_p = parts[1].strip()
+                        parsed_story.append({"es": es_p, "ko": ko_p})
+
+                # 구문 분석 2: 줄바꿈으로 스페인어-한국어 번갈아 나오는 경우
+                if not parsed_story:
+                    i = 0
+                    while i < len(lines):
+                        es_line = re.sub(r'^\d+[\.\)]\s*', '', lines[i].strip())
+                        ko_line = lines[i+1].strip() if (i + 1) < len(lines) else "번역 없음"
+                        parsed_story.append({"es": es_line, "ko": ko_line})
+                        i += 2
+
+                if parsed_story:
+                    # 1. 파일에 저장
+                    save_to_dele_json(ai_title, parsed_story)
+                    
+                    # 2. 세션 상태 업데이트 및 이동
+                    st.session_state.topics[ai_title] = parsed_story
+                    st.session_state.selected_topic = ai_title
+                    st.session_state.index = 0
+                    st.session_state.show_answer = False
+                    st.session_state.user_input = ""
+                    st.sidebar.success(f"'{ai_title}' 레슨이 dele_spanish.json 에 저장되었습니다!")
+                    st.rerun()
+                else:
+                    st.error("텍스트를 분석하지 못했습니다. 형식을 확인해 주세요.")
 
 with tab1:
     with st.form("add_text_form"):
@@ -118,12 +201,15 @@ with tab1:
                     st.error(f"스페인어({len(es_lines)}줄)와 한국어({len(ko_lines)}줄)의 줄 수가 다릅니다.")
                 else:
                     new_story = [{"es": es, "ko": ko} for es, ko in zip(es_lines, ko_lines)]
+                    
+                    # 파일 및 세션 저장
+                    save_to_dele_json(new_title, new_story)
                     st.session_state.topics[new_title] = new_story
                     st.session_state.selected_topic = new_title
                     st.session_state.index = 0
                     st.session_state.show_answer = False
                     st.session_state.user_input = ""
-                    st.success("새 레슨이 성공적으로 등록되었습니다!")
+                    st.success("등록 완료 및 json 파일 저장이 완료되었습니다!")
                     st.rerun()
 
 with tab2:
@@ -136,6 +222,7 @@ with tab2:
             for title, story in data.items():
                 if title not in st.session_state.topics:
                     st.session_state.topics[title] = story
+                    save_to_dele_json(title, story)
                     if first_added_title is None:
                         first_added_title = title
             
@@ -207,8 +294,8 @@ with st.form(key=f"dict_form_{st.session_state.selected_topic}_{st.session_state
         placeholder="여기에 스페인어 문장을 입력하세요..."
     )
     
-    # 3개 버튼을 1줄로 강제 유지하는 3컬럼 레이아웃 (비율 1:1:1.2)
-    btn_col1, btn_col2, btn_col3 = st.columns([1, 1, 1.2])
+    # [수정 2 반영] 3개 컬럼을 완전히 동일한 가로 비율(1:1:1)로 설정
+    btn_col1, btn_col2, btn_col3 = st.columns(3)
 
     with btn_col1:
         prev_btn = st.form_submit_button("⬅️ 이전", use_container_width=True)
