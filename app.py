@@ -14,57 +14,57 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 JSON_FILENAME = os.path.join(BASE_DIR, "dele_spanish.json")
 
 # ----------------------------------------------------
-# [강력 수정] 상단 여백 확보 및 모바일 버튼 강제 가로 3등분
+# [CSS 최적화] 모바일 가로 3분할 강제 및 상단 여백 최소화
 # ----------------------------------------------------
 st.markdown("""
     <style>
-        /* 1. 상단 메뉴바 가림 방지 여백 확보 */
+        /* 상단 패딩 최소화 (가림 없이 딱 맞게) */
         .main .block-container {
-            padding-top: 4.5rem !important;
-            padding-bottom: 2rem !important;
+            padding-top: 1.5rem !important;
+            padding-bottom: 1rem !important;
+            padding-left: 0.8rem !important;
+            padding-right: 0.8rem !important;
         }
         
         h1 { 
-            font-size: 1.2rem !important; 
+            font-size: 1.15rem !important; 
             margin-top: 0rem !important;
-            margin-bottom: 0.5rem !important;
+            margin-bottom: 0.4rem !important;
         }
-        h3 { font-size: 0.95rem !important; }
+        h3 { font-size: 0.9rem !important; margin-top: 0.2rem !important; }
 
-        /* 2. Form 내 가로 블록 강제 1행 유지 */
-        form div[data-testid="stHorizontalBlock"] {
+        /* 모바일에서도 st.columns가 세로로 안 떨어지고 무조건 가로 정렬 유지 */
+        div[data-testid="stHorizontalBlock"] {
             display: flex !important;
             flex-direction: row !important;
             flex-wrap: nowrap !important;
-            width: 100% !important;
             gap: 4px !important;
-        }
-
-        /* 3. 컬럼 각각을 정확히 가로 33.33%로 강제 */
-        form div[data-testid="stColumn"], 
-        form div[data-testid="column"] {
-            width: 33.33% !important;
-            min-width: 0px !important;
-            flex: 1 1 33.33% !important;
-        }
-
-        /* 4. 버튼 상자가 화면을 벗어나거나 거대해지지 않도록 가로 1/3 고정 */
-        form div[data-testid="stButton"] {
             width: 100% !important;
         }
 
-        form div[data-testid="stButton"] > button {
+        div[data-testid="stColumn"], 
+        div[data-testid="column"] {
+            width: 33.333% !important;
+            min-width: 0px !important;
+            flex: 1 1 33.333% !important;
+        }
+
+        /* 버튼 크기 및 폰트 1/3 사이즈 최적화 */
+        div[data-testid="stButton"] {
+            width: 100% !important;
+        }
+
+        div[data-testid="stButton"] > button {
             width: 100% !important;
             min-width: 0px !important;
-            padding: 0px 2px !important;
+            padding: 0px 1px !important;
             font-size: 0.75rem !important;
-            height: 2.2rem !important;
-            min-height: 2.2rem !important;
-            line-height: 2.2rem !important;
+            height: 2.3rem !important;
+            min-height: 2.3rem !important;
             white-space: nowrap !important;
         }
         
-        form div[data-testid="stButton"] > button p {
+        div[data-testid="stButton"] > button p {
             font-size: 0.75rem !important;
             white-space: nowrap !important;
         }
@@ -256,43 +256,41 @@ current_item = current_story[st.session_state.index]
 st.markdown(f"### 📌 {st.session_state.selected_topic} ({st.session_state.index + 1} / {len(current_story)})")
 st.audio(get_audio(current_item['es']), format='audio/mp3', autoplay=True)
 
-with st.form(key=f"dict_form_{st.session_state.selected_topic}_{st.session_state.index}", clear_on_submit=False):
-    user_input = st.text_area(
-        "스페인어로 받아 적으세요:", 
-        value=st.session_state.user_input,
-        height=100,
-        placeholder="여기에 입력하세요..."
-    )
-    
-    # 3개 컬럼 생성
-    btn_col1, btn_col2, btn_col3 = st.columns(3)
+# 텍스트 입력창
+user_input = st.text_area(
+    "스페인어로 받아 적으세요:", 
+    value=st.session_state.user_input,
+    height=100,
+    key=f"input_{st.session_state.selected_topic}_{st.session_state.index}",
+    placeholder="여기에 입력하세요..."
+)
+st.session_state.user_input = user_input
 
-    with btn_col1:
-        prev_btn = st.form_submit_button("⬅️ 이전", use_container_width=True)
-    with btn_col2:
-        next_btn = st.form_submit_button("다음 ➡️", use_container_width=True)
-    with btn_col3:
-        check_btn = st.form_submit_button("🔎 정답", use_container_width=True, type="primary")
+# Form을 제거하여 모바일에서도 1행 3등분(1:1:1) 강제 고정
+btn_col1, btn_col2, btn_col3 = st.columns(3)
 
-# 버튼 동작
-if check_btn:
-    st.session_state.user_input = user_input
-    st.session_state.show_answer = True
-    st.rerun()
-elif prev_btn:
-    if st.session_state.index > 0:
-        st.session_state.index -= 1
-        st.session_state.show_answer = False
-        st.session_state.user_input = ""
-        st.rerun()
-elif next_btn:
-    if st.session_state.index < len(current_story) - 1:
-        st.session_state.index += 1
-        st.session_state.show_answer = False
-        st.session_state.user_input = ""
+with btn_col1:
+    if st.button("⬅️ 이전", use_container_width=True):
+        if st.session_state.index > 0:
+            st.session_state.index -= 1
+            st.session_state.show_answer = False
+            st.session_state.user_input = ""
+            st.rerun()
+
+with btn_col2:
+    if st.button("다음 ➡️", use_container_width=True):
+        if st.session_state.index < len(current_story) - 1:
+            st.session_state.index += 1
+            st.session_state.show_answer = False
+            st.session_state.user_input = ""
+            st.rerun()
+
+with btn_col3:
+    if st.button("🔎 정답", use_container_width=True, type="primary"):
+        st.session_state.show_answer = True
         st.rerun()
 
-# 채점
+# 채점 결과
 if st.session_state.show_answer:
     if clean_text(st.session_state.user_input) == clean_text(current_item['es']):
         st.success("🎉 **정답입니다!**")
