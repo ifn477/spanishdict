@@ -9,18 +9,26 @@ import unicodedata
 # 앱 기본 설정
 st.set_page_config(page_title="스페인어 받아쓰기 연습장", page_icon="🇪🇸", layout="wide")
 
-# 화면 여백 줄이기 및 제목/버튼 크기 축소 커스텀 CSS
+# 모바일에서도 무조건 한 줄(가로) 정렬을 유지하는 CSS 강제 적용
 st.markdown("""
     <style>
         .block-container { padding-top: 1rem; padding-bottom: 1rem; }
         h1 { font-size: 1.3rem !important; margin-bottom: 0.1rem !important; }
         h3 { font-size: 1.0rem !important; margin-top: 0.3rem !important; margin-bottom: 0.3rem !important; }
         
-        /* 버튼 높이 및 여백 축소 */
+        /* 모바일 화면에서 컬럼이 세로로 떨어지지 않게 가로 줄바꿈 금지 강제 적용 */
+        div[data-testid="column"] {
+            width: calc(33.3333% - 0.5rem) !important;
+            flex: 1 1 calc(33.3333% - 0.5rem) !important;
+            min-width: 0px !important;
+        }
+        
+        /* 버튼 높이, 글자 크기, 여백 최적화 */
         div[data-testid="stButton"] > button {
-            padding: 0.25rem 0.5rem !important;
-            font-size: 0.9rem !important;
-            min-height: 2rem !important;
+            padding: 0.2rem 0.2rem !important;
+            font-size: 0.8rem !important;
+            min-height: 2.2rem !important;
+            white-space: nowrap !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -186,12 +194,11 @@ current_item = current_story[st.session_state.index]
 # 타이틀 및 진행도
 st.markdown(f"### 📌 {st.session_state.selected_topic} ({st.session_state.index + 1} / {len(current_story)})")
 
-# 정속 오디오 재생 플레이어 단독 배치
+# 오디오 재생 플레이어
 st.audio(get_audio(current_item['es'], speed=False), format='audio/mp3', autoplay=True)
 
-# 폼(Form) 구조를 이용해 엔터 키 입력 시 즉시 제출 처리
+# 폼(Form) 구조를 이용해 엔터 키 제출 처리
 with st.form(key=f"dict_form_{st.session_state.selected_topic}_{st.session_state.index}", clear_on_submit=False):
-    # 4줄 높이의 입력 영역 (엔터 누르면 폼 제출)
     user_input = st.text_area(
         "스페인어로 받아 적으세요:", 
         value=st.session_state.user_input,
@@ -200,8 +207,8 @@ with st.form(key=f"dict_form_{st.session_state.selected_topic}_{st.session_state
         placeholder="여기에 스페인어 문장을 입력하세요..."
     )
     
-    # 하단 버튼 레이아웃: 이전 / 다음 / 정답 확인 (우측배치)
-    btn_col1, btn_col2, btn_col3 = st.columns([1, 1, 1.5])
+    # 3개 버튼을 1줄로 강제 유지하는 3컬럼 레이아웃 (비율 1:1:1.2)
+    btn_col1, btn_col2, btn_col3 = st.columns([1, 1, 1.2])
 
     with btn_col1:
         prev_btn = st.form_submit_button("⬅️ 이전", use_container_width=True)
@@ -210,8 +217,7 @@ with st.form(key=f"dict_form_{st.session_state.selected_topic}_{st.session_state
         next_btn = st.form_submit_button("다음 ➡️", use_container_width=True)
 
     with btn_col3:
-        # 엔터 치면 기본적으로 이 가장 우측의 Submit 버튼이 눌림
-        check_btn = st.form_submit_button("🔎 정답 확인", use_container_width=True, type="primary")
+        check_btn = st.form_submit_button("🔎 정답확인", use_container_width=True, type="primary")
 
 # 버튼 이벤트 동작
 if check_btn:
@@ -245,13 +251,11 @@ if st.session_state.show_answer:
     else:
         st.error("❌ **틀린 단어를 확인해보세요.**")
     
-    # 내가 작성한 답안
     if st.session_state.user_input.strip():
         highlighted_user_text = get_highlighted_user_text(st.session_state.user_input, current_item['es'])
         st.markdown(f"✍️ **내 답:** {highlighted_user_text}", unsafe_allow_html=True)
     else:
         st.markdown("✍️ **내 답:** *(입력값 없음)*")
 
-    # 정답 및 해석
     st.markdown(f"👉 **정답:** `{current_item['es']}`")
     st.info(f"💡 **뜻:** {current_item['ko']}")
