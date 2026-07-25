@@ -9,59 +9,71 @@ import unicodedata
 # 앱 기본 설정
 st.set_page_config(page_title="스페인어 받아쓰기 연습장", page_icon="🇪🇸", layout="wide")
 
-# JSON 저장 파일 절대 경로 확보 (로컬/서버 어디서든 누락 방지)
+# JSON 저장 파일 경로
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 JSON_FILENAME = os.path.join(BASE_DIR, "dele_spanish.json")
 
 # ----------------------------------------------------
-# [수정 1] 모바일에서도 삐져나가지 않고 1행 3등분되는 강력 CSS
+# [강력 수정] 상단 여백 확보 및 모바일 버튼 강제 가로 3등분
 # ----------------------------------------------------
 st.markdown("""
     <style>
-        .block-container { padding-top: 0.8rem; padding-bottom: 0.8rem; }
-        h1 { font-size: 1.2rem !important; }
-        h3 { font-size: 0.95rem !important; }
+        /* 1. 상단 메뉴바 가림 방지 여백 확보 */
+        .main .block-container {
+            padding-top: 4.5rem !important;
+            padding-bottom: 2rem !important;
+        }
         
-        /* Form 내의 컬럼 블록을 가로 1행으로 강제 묶음 */
-        div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
+        h1 { 
+            font-size: 1.2rem !important; 
+            margin-top: 0rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+        h3 { font-size: 0.95rem !important; }
+
+        /* 2. Form 내 가로 블록 강제 1행 유지 */
+        form div[data-testid="stHorizontalBlock"] {
             display: flex !important;
             flex-direction: row !important;
             flex-wrap: nowrap !important;
-            gap: 2px !important;
             width: 100% !important;
+            gap: 4px !important;
         }
-        
-        /* 3개의 컬럼을 정확히 33.33%로 고정 */
-        div[data-testid="stForm"] div[data-testid="column"] {
-            flex: 1 1 33.33% !important;
+
+        /* 3. 컬럼 각각을 정확히 가로 33.33%로 강제 */
+        form div[data-testid="stColumn"], 
+        form div[data-testid="column"] {
             width: 33.33% !important;
             min-width: 0px !important;
-            padding: 0px !important;
+            flex: 1 1 33.33% !important;
         }
-        
-        /* 버튼 테두리와 내부 텍스트 모바일 최적화 */
-        div[data-testid="stForm"] button {
+
+        /* 4. 버튼 상자가 화면을 벗어나거나 거대해지지 않도록 가로 1/3 고정 */
+        form div[data-testid="stButton"] {
             width: 100% !important;
-            padding: 2px 0px !important;
-            font-size: 0.72rem !important;
-            min-height: 2.1rem !important;
-            height: 2.1rem !important;
+        }
+
+        form div[data-testid="stButton"] > button {
+            width: 100% !important;
+            min-width: 0px !important;
+            padding: 0px 2px !important;
+            font-size: 0.75rem !important;
+            height: 2.2rem !important;
+            min-height: 2.2rem !important;
+            line-height: 2.2rem !important;
             white-space: nowrap !important;
-            overflow: hidden !important;
         }
         
-        /* 버튼 내부 p 태그 폰트 크기까지 강제 축소 */
-        div[data-testid="stForm"] button p {
-            font-size: 0.72rem !important;
-            margin: 0 !important;
-            line-height: 1 !important;
+        form div[data-testid="stButton"] > button p {
+            font-size: 0.75rem !important;
+            white-space: nowrap !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🇪🇸 나만의 스페인어 Daily Dictation")
 
-# --- [1] 데이터 로드 및 저장 함수 보강 ---
+# --- [1] 데이터 로드 및 저장 함수 ---
 DEFAULT_TOPICS = {
     "🌱 [B1] 일상의 변화 (Sample)": [
         {"es": "Últimamente he sentido que necesito cambiar mi estilo de vida.", "ko": "최근에 내 라이프스타일을 바꿀 필요가 있다고 느꼈어."},
@@ -71,7 +83,6 @@ DEFAULT_TOPICS = {
 }
 
 def load_all_topics():
-    """ JSON 파일에서 모든 주제를 읽어옴 """
     topics = DEFAULT_TOPICS.copy()
     if os.path.exists(JSON_FILENAME):
         try:
@@ -79,14 +90,12 @@ def load_all_topics():
                 data = json.load(f)
                 if isinstance(data, dict):
                     topics.update(data)
-        except Exception as e:
-            st.error(f"JSON 로드 오류: {e}")
+        except Exception:
+            pass
     return topics
 
 def save_to_json_file(title, story):
-    """ dele_spanish.json 파일에 안전하게 신규 레슨 쓰기 """
     data = {}
-    # 기존 파일이 있으면 먼저 읽어오기
     if os.path.exists(JSON_FILENAME):
         try:
             with open(JSON_FILENAME, "r", encoding="utf-8") as f:
@@ -94,14 +103,12 @@ def save_to_json_file(title, story):
         except Exception:
             data = {}
     
-    # 데이터 추가 후 저장
     data[title] = story
     try:
         with open(JSON_FILENAME, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         return True
-    except Exception as e:
-        st.error(f"파일 저장 실패: {e}")
+    except Exception:
         return False
 
 # 세션 상태 관리
@@ -142,7 +149,7 @@ st.sidebar.divider()
 st.sidebar.header("➕ 새 콘텐츠 추가하기")
 tab_ai, tab1 = st.sidebar.tabs(["🤖 AI 텍스트 복붙", "✍️ 직접 작성"])
 
-# --- AI 텍스트 복붙 기능 ---
+# AI 텍스트 복붙 기능
 with tab_ai:
     st.caption("AI 문장을 붙여넣으면 `dele_spanish.json`에 저장이 됩니다.")
     
@@ -162,7 +169,6 @@ with tab_ai:
                 lines = [line.strip() for line in ai_raw_text.strip().split('\n') if line.strip()]
                 parsed_story = []
 
-                # 구분 처리 (1. 스페인어 | 한국어  또는 2. 줄바꿈 방식)
                 for line in lines:
                     if '|' in line:
                         parts = line.split('|')
@@ -179,7 +185,6 @@ with tab_ai:
                         i += 2
 
                 if parsed_story:
-                    # 파일에 실제 저장 수행
                     if save_to_json_file(ai_title, parsed_story):
                         st.session_state.topics[ai_title] = parsed_story
                         st.session_state.selected_topic = ai_title
@@ -259,8 +264,8 @@ with st.form(key=f"dict_form_{st.session_state.selected_topic}_{st.session_state
         placeholder="여기에 입력하세요..."
     )
     
-    # 컬럼 비율을 완벽히 1:1:1 배치
-    btn_col1, btn_col2, btn_col3 = st.columns([1, 1, 1])
+    # 3개 컬럼 생성
+    btn_col1, btn_col2, btn_col3 = st.columns(3)
 
     with btn_col1:
         prev_btn = st.form_submit_button("⬅️ 이전", use_container_width=True)
