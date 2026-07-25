@@ -9,34 +9,43 @@ import unicodedata
 # 앱 기본 설정
 st.set_page_config(page_title="스페인어 받아쓰기 연습장", page_icon="🇪🇸", layout="wide")
 
-# 모바일에서도 무조건 한 줄(가로) 정렬을 유지하는 CSS 강제 적용
+# 모바일에서도 무조건 1행 3분할(33.33%)로 가로 정렬 & 크기 축소 CSS 적용
 st.markdown("""
     <style>
-        .block-container { padding-top: 1rem; padding-bottom: 1rem; }
-        h1 { font-size: 1.3rem !important; margin-bottom: 0.1rem !important; }
-        h3 { font-size: 1.0rem !important; margin-top: 0.3rem !important; margin-bottom: 0.3rem !important; }
+        .block-container { padding-top: 0.8rem; padding-bottom: 0.8rem; }
+        h1 { font-size: 1.2rem !important; margin-bottom: 0.1rem !important; }
+        h3 { font-size: 0.95rem !important; margin-top: 0.2rem !important; margin-bottom: 0.2rem !important; }
         
-        /* 모바일 화면에서도 3개 버튼을 무조건 1행에 배치하는 강제 CSS */
+        /* 1행 배치 및 3분할 비율 강제 고정 */
         div[data-testid="stHorizontalBlock"] {
             display: flex !important;
             flex-direction: row !important;
             flex-wrap: nowrap !important;
-            gap: 0.3rem !important;
+            gap: 4px !important; /* 버튼 사이 간격을 좁힘 */
+            width: 100% !important;
         }
         
         div[data-testid="column"] {
-            flex: 1 1 auto !important;
+            flex: 1 1 33.33% !important;
             min-width: 0px !important;
-            width: auto !important;
+            width: 33.33% !important;
         }
         
-        /* 버튼 높이, 글자 크기, 여백 최적화 */
-        div[data-testid="stButton"] > button {
-            padding: 0.2rem 0.1rem !important;
-            font-size: 0.75rem !important;
-            min-height: 2.2rem !important;
-            white-space: nowrap !important;
+        /* 버튼 크기 및 폰트 1/3 사이즈 최적화 */
+        div[data-testid="stButton"] {
             width: 100% !important;
+        }
+
+        div[data-testid="stButton"] > button {
+            width: 100% !important;
+            padding: 0.15rem 0.1rem !important; /* 위아래, 좌우 여백 최소화 */
+            font-size: 0.7rem !important;       /* 모바일 맞춤 글자 크기 */
+            min-height: 2.0rem !important;       /* 버튼 높이 축소 */
+            height: 2.0rem !important;
+            line-height: 1 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important; /* 넘치는 글자 자름 */
         }
     </style>
 """, unsafe_allow_html=True)
