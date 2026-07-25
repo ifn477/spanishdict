@@ -45,7 +45,7 @@
   
   ]
   
-  {
+  
     "topic": "Trabajo y Entrevista (B1-B2)",
     "sentences": [
       {"id": 1, "es": "Buenos días, he venido para la entrevista de trabajo programada a las diez.", "ko": "안녕하세요, 10시에 예정된 면접을 위해 왔습니다."},
@@ -79,8 +79,7 @@
       {"id": 29, "es": "Ahora solo me queda esperar pacientemente la decisión final del comité.", "ko": "이제 위원회의 최종 결정을 인내심을 갖고 기다리는 일만 남았습니다."},
       {"id": 30, "es": "Pase lo que pase, siento que esta experiencia me ha ayudado a ganar mucha confianza.", "ko": "무슨 일이 있든 이번 경험이 저에게 큰 자신감을 얻는 데 도움이 되었다고 느낍니다."}
     ]
-  },
-  {
+
     "topic": "Cambio Climático y Medio Ambiente (B2-C1)",
     "sentences": [
       {"id": 1, "es": "El cambio climático representa uno de los desafíos más urgentes y complejos del siglo veintiuno.", "ko": "기후 변화는 21세기의 가장 긴급하고 복잡한 도전 과제 중 하나입니다."},
