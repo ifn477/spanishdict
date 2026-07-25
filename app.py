@@ -9,13 +9,19 @@ import unicodedata
 # 앱 기본 설정
 st.set_page_config(page_title="스페인어 받아쓰기 연습장", page_icon="🇪🇸", layout="wide")
 
-# 화면 여백 줄이기 및 제목 크기 축소 커스텀 CSS
+# 화면 여백 줄이기 및 제목/버튼 크기 축소 커스텀 CSS
 st.markdown("""
     <style>
-        .block-container { padding-top: 1.5rem; padding-bottom: 1.5rem; }
-        h1 { font-size: 1.5rem !important; margin-bottom: 0.2rem !important; }
-        h3 { font-size: 1.1rem !important; margin-top: 0.5rem !important; margin-bottom: 0.5rem !important; }
-        .stButton button { padding-top: 0.2rem; padding-bottom: 0.2rem; }
+        .block-container { padding-top: 1rem; padding-bottom: 1rem; }
+        h1 { font-size: 1.3rem !important; margin-bottom: 0.1rem !important; }
+        h3 { font-size: 1.0rem !important; margin-top: 0.3rem !important; margin-bottom: 0.3rem !important; }
+        
+        /* 버튼 높이 및 여백 축소 */
+        div[data-testid="stButton"] > button {
+            padding: 0.25rem 0.5rem !important;
+            font-size: 0.9rem !important;
+            min-height: 2rem !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -177,52 +183,57 @@ if st.session_state.index >= len(current_story):
 
 current_item = current_story[st.session_state.index]
 
-# 타이틀 및 진행도 표시 (폰트 크기 축소 적용)
+# 타이틀 및 진행도
 st.markdown(f"### 📌 {st.session_state.selected_topic} ({st.session_state.index + 1} / {len(current_story)})")
 
-# 오디오 재생 (컴팩트 표시)
-col1, col2 = st.columns(2)
-with col1:
-    st.caption("🔊 정속")
-    st.audio(get_audio(current_item['es'], speed=False), format='audio/mp3', autoplay=True)
-with col2:
-    st.caption("🐢 느리게")
-    st.audio(get_audio(current_item['es'], speed=True), format='audio/mp3')
+# 정속 오디오 재생 플레이어 단독 배치
+st.audio(get_audio(current_item['es'], speed=False), format='audio/mp3', autoplay=True)
 
-# 입력창 (4줄 크기 text_area로 변경)
-user_input = st.text_area(
-    "스페인어로 받아 적으세요:", 
-    value=st.session_state.user_input,
-    height=100,
-    key=f"input_field_{st.session_state.selected_topic}_{st.session_state.index}",
-    placeholder="여기에 스페인어 문장을 입력하세요... (악센트/문장부호 무시)"
-)
+# 폼(Form) 구조를 이용해 엔터 키 입력 시 즉시 제출 처리
+with st.form(key=f"dict_form_{st.session_state.selected_topic}_{st.session_state.index}", clear_on_submit=False):
+    # 4줄 높이의 입력 영역 (엔터 누르면 폼 제출)
+    user_input = st.text_area(
+        "스페인어로 받아 적으세요:", 
+        value=st.session_state.user_input,
+        height=100,
+        key=f"input_field_{st.session_state.selected_topic}_{st.session_state.index}",
+        placeholder="여기에 스페인어 문장을 입력하세요..."
+    )
+    
+    # 하단 버튼 레이아웃: 이전 / 다음 / 정답 확인 (우측배치)
+    btn_col1, btn_col2, btn_col3 = st.columns([1, 1, 1.5])
 
-# 버튼 영역
-btn_col1, btn_col2, btn_col3 = st.columns([2, 1, 1])
+    with btn_col1:
+        prev_btn = st.form_submit_button("⬅️ 이전", use_container_width=True)
 
-with btn_col1:
-    if st.button("🔎 정답 확인", use_container_width=True, type="primary"):
-        st.session_state.user_input = user_input
-        st.session_state.show_answer = True
+    with btn_col2:
+        next_btn = st.form_submit_button("다음 ➡️", use_container_width=True)
 
-with btn_col2:
-    if st.button("⬅️ 이전", use_container_width=True):
-        if st.session_state.index > 0:
-            st.session_state.index -= 1
-            st.session_state.show_answer = False
-            st.session_state.user_input = ""
-            st.rerun()
+    with btn_col3:
+        # 엔터 치면 기본적으로 이 가장 우측의 Submit 버튼이 눌림
+        check_btn = st.form_submit_button("🔎 정답 확인", use_container_width=True, type="primary")
 
-with btn_col3:
-    if st.button("다음 ➡️", use_container_width=True):
-        if st.session_state.index < len(current_story) - 1:
-            st.session_state.index += 1
-            st.session_state.show_answer = False
-            st.session_state.user_input = ""
-            st.rerun()
-        else:
-            st.success("🎉 레슨의 마지막 문장입니다!")
+# 버튼 이벤트 동작
+if check_btn:
+    st.session_state.user_input = user_input
+    st.session_state.show_answer = True
+    st.rerun()
+
+elif prev_btn:
+    if st.session_state.index > 0:
+        st.session_state.index -= 1
+        st.session_state.show_answer = False
+        st.session_state.user_input = ""
+        st.rerun()
+
+elif next_btn:
+    if st.session_state.index < len(current_story) - 1:
+        st.session_state.index += 1
+        st.session_state.show_answer = False
+        st.session_state.user_input = ""
+        st.rerun()
+    else:
+        st.success("🎉 레슨의 마지막 문장입니다!")
 
 # --- [5] 채점 결과 표시 ---
 if st.session_state.show_answer:
